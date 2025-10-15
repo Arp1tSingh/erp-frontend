@@ -1,0 +1,184 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { GraduationCap, LogOut, FileText, Calendar, BookOpen } from "lucide-react";
+import { GradesView } from "./GradesView";
+import { AttendanceView } from "./AttendanceView";
+import { ResourcesView } from "./ResourcesView";
+
+interface StudentDashboardProps {
+  onLogout: () => void;
+}
+
+interface StudentData {
+  student_id: string;
+  first_name: string;
+  last_name: string;
+}
+
+type ViewType = "home" | "grades" | "attendance" | "resources";
+
+export function StudentDashboard({ onLogout }: StudentDashboardProps) {
+  const [activeView, setActiveView] = useState<ViewType>("home");
+  const [student, setStudent] = useState<StudentData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loggedInUserString = localStorage.getItem('user');
+    if (!loggedInUserString) {
+      setError("No user data found. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    const loggedInUser = JSON.parse(loggedInUserString);
+    const studentId = loggedInUser.student_id;
+
+    if (studentId) {
+      axios.get(`http://localhost:3001/api/students/${studentId}`)
+        .then(response => {
+          setStudent(response.data);
+        })
+        .catch(err => {
+          console.error("Error fetching student data:", err);
+          setError("Failed to load dashboard data.");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setError("Could not find student ID. Please log in again.");
+      setLoading(false);
+    }
+  }, []);
+
+  if (loading) return <div className="p-8">Loading dashboard...</div>;
+  if (error) return <div className="p-8 text-red-500">{error}</div>;
+
+  const renderView = () => {
+    switch (activeView) {
+      case "grades":
+        return <GradesView onBack={() => setActiveView("home")} />;
+      case "attendance":
+        return <AttendanceView onBack={() => setActiveView("home")} />;
+      case "resources":
+        return <ResourcesView onBack={() => setActiveView("home")} />;
+      default:
+        return (
+          <div className="space-y-8">
+            <div>
+              <h2 className="mb-2 text-2xl font-bold">Welcome back, {student?.first_name} {student?.last_name}</h2>
+              <p className="text-muted-foreground">Student ID: {student?.student_id}</p>
+            </div>
+
+            {/* --- THIS IS THE RESTORED UI FOR YOUR CARDS --- */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card 
+                className="hover:shadow-lg transition-shadow cursor-pointer group"
+                onClick={() => setActiveView("grades")}
+              >
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-2 group-hover:bg-blue-500/20 transition-colors">
+                    <FileText className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <CardTitle>Grades</CardTitle>
+                  <CardDescription>
+                    View your academic performance and course grades
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <span className="text-sm font-medium">View Grades →</span>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="hover:shadow-lg transition-shadow cursor-pointer group"
+                onClick={() => setActiveView("attendance")}
+              >
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-2 group-hover:bg-green-500/20 transition-colors">
+                    <Calendar className="h-6 w-6 text-green-600" />
+                  </div>
+                  <CardTitle>Attendance</CardTitle>
+                  <CardDescription>
+                    Check your attendance records and statistics
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <span className="text-sm font-medium">View Attendance →</span>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="hover:shadow-lg transition-shadow cursor-pointer group"
+                onClick={() => setActiveView("resources")}
+              >
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-2 group-hover:bg-purple-500/20 transition-colors">
+                    <BookOpen className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <CardTitle>Resources</CardTitle>
+                  <CardDescription>
+                    Access course materials and learning resources
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <span className="text-sm font-medium">View Resources →</span>
+                </CardContent>
+              </Card>
+            </div>
+            {/* --- END OF RESTORED CARD UI --- */}
+
+
+            {/* Quick Stats */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Overall SGPA</CardTitle>
+                  <div className="mt-2 text-2xl font-bold">9.2</div>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Attendance Rate</CardTitle>
+                  <div className="mt-2 text-2xl font-bold">92%</div>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Enrolled Courses</CardTitle>
+                  <div className="mt-2 text-2xl font-bold">6</div>
+                </CardHeader>
+              </Card>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-8 w-8" />
+            <span className="text-xl">EduERP</span>
+            <span className="text-muted-foreground">/ Student Portal</span>
+          </div>
+          <Button variant="outline" onClick={onLogout}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        {renderView()}
+      </main>
+    </div>
+  );
+}
