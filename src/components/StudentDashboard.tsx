@@ -37,7 +37,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     const studentId = loggedInUser.student_id;
 
     if (studentId) {
-      axios.get(`http://localhost:3001/api/students/${studentId}`)
+      axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/students/${studentId}`)
         .then(response => {
           setStudent(response.data);
         })
