@@ -21,7 +21,7 @@ export function LoginSection({ onLogin }: LoginSectionProps) {
   event.preventDefault();
   setError(null);
 
-  const loginUrl = 'http://localhost:3001/api/login';
+  const loginUrl = `${import.meta.env.VITE_API_BASE_URL}/api/login`;
 
   try {
     const response = await axios.post(loginUrl, {
