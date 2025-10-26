@@ -1,138 +1,114 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+// src/components/GradesView.tsx (Simplified Example)
+
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Button } from "./ui/button";
-import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { Badge } from "./ui/badge";
+import { ArrowLeft } from 'lucide-react';
 
 interface GradesViewProps {
   onBack: () => void;
 }
 
+// Define types for the data we expect from the API
+interface GradeSummary {
+  currentSgpa: string;
+  totalCredits: number;
+  coursesPassed: number;
+  totalCourses: number;
+  averageScore: string;
+}
+
+interface CourseGradeDetail {
+  course_id: string;
+  course_name: string;
+  credit_hours: number;
+  numeric_score: number | null; // Can be null if not graded yet
+  letter_grade: string | null;
+  // trend can be calculated later if needed
+}
+
 export function GradesView({ onBack }: GradesViewProps) {
-  const courses = [
-    {
-      id: 1,
-      code: "CS101",
-      name: "Introduction to Computer Science",
-      grade: "A",
-      percentage: 92,
-      credits: 4,
-      trend: "up"
-    },
-    {
-      id: 2,
-      code: "MATH201",
-      name: "Calculus II",
-      grade: "B+",
-      percentage: 87,
-      credits: 4,
-      trend: "up"
-    },
-    {
-      id: 3,
-      code: "ENG105",
-      name: "Technical Writing",
-      grade: "A-",
-      percentage: 90,
-      credits: 3,
-      trend: "down"
-    },
-    {
-      id: 4,
-      code: "PHYS201",
-      name: "Physics I",
-      grade: "B",
-      percentage: 83,
-      credits: 4,
-      trend: "up"
-    },
-    {
-      id: 5,
-      code: "HIST110",
-      name: "World History",
-      grade: "A",
-      percentage: 94,
-      credits: 3,
-      trend: "up"
-    },
-    {
-      id: 6,
-      code: "CS102",
-      name: "Data Structures",
-      grade: "B+",
-      percentage: 88,
-      credits: 4,
-      trend: "down"
+  const [summary, setSummary] = useState<GradeSummary | null>(null);
+  const [details, setDetails] = useState<CourseGradeDetail[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loggedInUserString = localStorage.getItem('user');
+    if (!loggedInUserString) {
+      setError("User not logged in.");
+      setLoading(false);
+      return;
     }
-  ];
+    const loggedInUser = JSON.parse(loggedInUserString);
+    const studentId = loggedInUser.student_id;
 
-  const getGradeColor = (grade: string) => {
-    if (grade.startsWith("A")) return "bg-green-500/10 text-green-700 border-green-500/20";
-    if (grade.startsWith("B")) return "bg-blue-500/10 text-blue-700 border-green-500/20";
-    if (grade.startsWith("C")) return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
-    return "bg-red-500/10 text-red-700 border-red-500/20";
-  };
+    if (!studentId) {
+      setError("Student ID not found.");
+      setLoading(false);
+      return;
+    }
 
-  const calculateGPA = () => {
-    const gradePoints: { [key: string]: number } = {
-      "A": 4.0, "A-": 3.7, "B+": 3.3, "B": 3.0, "B-": 2.7,
-      "C+": 2.3, "C": 2.0, "C-": 1.7, "D": 1.0, "F": 0.0
-    };
+    setLoading(true);
+    // Call the NEW backend endpoint for 'current' grades
+    axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/grades/${studentId}/current`)
+      .then(response => {
+        setSummary(response.data.summary);
+        setDetails(response.data.details);
+      })
+      .catch(err => {
+        console.error("Error fetching grades:", err);
+        setError("Failed to load academic grades.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
-    let totalPoints = 0;
-    let totalCredits = 0;
-
-    courses.forEach(course => {
-      totalPoints += gradePoints[course.grade] * course.credits;
-      totalCredits += course.credits;
-    });
-
-    return (totalPoints / totalCredits).toFixed(2);
-  };
+  if (loading) return <div className="p-4 text-center">Loading grades...</div>;
+  if (error) return <div className="p-4 text-red-500 text-center">{error}</div>;
+  if (!summary) return <div className="p-4 text-center">No grade summary available.</div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
-        </Button>
-      </div>
+      <Button variant="outline" size="sm" onClick={onBack} className="mb-4">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+      </Button>
+      
+      <h2 className="text-2xl font-bold">Academic Grades</h2>
+      <p className="text-muted-foreground">Current semester performance overview</p>
 
-      <div>
-        <h2 className="mb-2">Academic Grades</h2>
-        <p className="text-muted-foreground">Current semester performance overview</p>
-      </div>
-
-      {/* GPA Summary */}
+      {/* Summary Cards */}
       <div className="grid md:grid-cols-4 gap-4">
         <Card>
           <CardHeader>
-            <CardDescription>Current SGPA</CardDescription>
-            <CardTitle>{calculateGPA()}</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Current SGPA</CardTitle>
+            <div className="text-2xl font-bold">{summary.currentSgpa}</div>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Total Credits</CardDescription>
-            <CardTitle>22</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Credits</CardTitle>
+            <div className="text-2xl font-bold">{summary.totalCredits}</div>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Courses Passed</CardDescription>
-            <CardTitle>6/6</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Courses Passed</CardTitle>
+            <div className="text-2xl font-bold">{summary.coursesPassed}/{summary.totalCourses}</div>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Average Score</CardDescription>
-            <CardTitle>89%</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
+            <div className="text-2xl font-bold">{summary.averageScore}%</div>
           </CardHeader>
         </Card>
       </div>
 
-      {/* Grades Table */}
+      {/* Course Grades Table */}
       <Card>
         <CardHeader>
           <CardTitle>Course Grades</CardTitle>
@@ -144,33 +120,28 @@ export function GradesView({ onBack }: GradesViewProps) {
               <TableRow>
                 <TableHead>Course Code</TableHead>
                 <TableHead>Course Name</TableHead>
-                <TableHead className="text-center">Credits</TableHead>
-                <TableHead className="text-center">Score</TableHead>
+                <TableHead className="text-left">Credits</TableHead>
+                <TableHead className="text-left">Score</TableHead>
                 <TableHead className="text-center">Grade</TableHead>
-                <TableHead className="text-center">Trend</TableHead>
+                {/* Trend column removed for simplicity, can be added later */}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {courses.map((course) => (
-                <TableRow key={course.id}>
-                  <TableCell>{course.code}</TableCell>
-                  <TableCell>{course.name}</TableCell>
-                  <TableCell className="text-center">{course.credits}</TableCell>
-                  <TableCell className="text-center">{course.percentage}%</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline" className={getGradeColor(course.grade)}>
-                      {course.grade}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {course.trend === "up" ? (
-                      <TrendingUp className="h-4 w-4 text-green-600 mx-auto" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4 text-red-600 mx-auto" />
-                    )}
-                  </TableCell>
+              {details.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">No courses found for this semester.</TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                details.map((course) => (
+                  <TableRow key={course.course_id}>
+                    <TableCell className="font-medium">{course.course_id}</TableCell>
+                    <TableCell>{course.course_name}</TableCell>
+                    <TableCell className="text-left">{course.credit_hours}</TableCell>
+                    <TableCell className="text-right">{course.numeric_score !== null ? `${course.numeric_score}%` : 'N/A'}</TableCell>
+                    <TableCell className="text-center">{course.letter_grade || 'N/A'}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
