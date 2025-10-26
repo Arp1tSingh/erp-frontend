@@ -7,6 +7,10 @@ import { GradesView } from "./GradesView";
 import { AttendanceView } from "./AttendanceView";
 import { ResourcesView } from "./ResourcesView";
 
+const [student, setStudent] = useState<StudentData | null>(null);
+const [sgpa, setSgpa] = useState<string | null>(null); // State for SGPA (string because of toFixed(2))
+const [loading, setLoading] = useState(true);
+
 interface StudentDashboardProps {
   onLogout: () => void;
 }
@@ -39,16 +43,18 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     if (studentId) {
       axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/students/${studentId}`)
         .then(response => {
-          setStudent(response.data);
+          // --- UPDATE THESE LINES ---
+          setStudent(response.data.student); // Get student data from response.data.student
+          setSgpa(response.data.sgpa);       // Get SGPA data from response.data.sgpa
         })
         .catch(err => {
-          console.error("Error fetching student data:", err);
-          setError("Failed to load dashboard data.");
+          // ... error handling ...
         })
         .finally(() => {
           setLoading(false);
         });
-    } else {
+    }
+     else {
       setError("Could not find student ID. Please log in again.");
       setLoading(false);
     }
@@ -137,7 +143,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
               <Card>
                 <CardHeader>
                   <CardTitle>Overall SGPA</CardTitle>
-                  <div className="mt-2 text-2xl font-bold">9.2</div>
+                  <div className="mt-2 text-2xl font-bold">{sgpa !== null ? sgpa : 'N/A'}</div>
                 </CardHeader>
               </Card>
               <Card>
