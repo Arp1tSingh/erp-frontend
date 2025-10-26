@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react"; // Added useEffect
-import axios from "axios"; // Added axios
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { GraduationCap, LogOut, Users, BarChart3, BookOpen, ArrowRight } from "lucide-react";
 import { StudentManagementView } from "./StudentManagementView";
-import { ReportsView } from "./ReportsView";
-import { CourseManagementView } from "./CourseManagementView";
-
+// import { ReportsView } from "./ReportsView"; // Keep commented if not built
+import { CourseManagementView } from "./CourseManagementView"; // Ensure this component exists
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -29,7 +28,6 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch stats only when the main 'home' view is active
     if (activeView === 'home') {
       setLoadingStats(true);
       setError(null);
@@ -45,28 +43,25 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
           setLoadingStats(false);
         });
     }
-  }, [activeView]); // Re-run effect if activeView changes back to 'home'
+  }, [activeView]);
 
   const renderView = () => {
     switch (activeView) {
-      // --- 2. UPDATE THIS CASE ---
       case "students":
-        // Render the actual StudentManagementView component
         return <StudentManagementView onBack={() => setActiveView("home")} />;
 
-      // --- Placeholder Views ---
       case "reports":
         return ( <div> {/* Replace with <ReportsView onBack={() => setActiveView("home")} /> */}
              <Button onClick={() => setActiveView("home")}>Back</Button>
             <h2>Reports & Analytics (Placeholder)</h2>
           </div> );
-      case "courses":
-        return ( <div> {/* Replace with <CourseManagementView onBack={() => setActiveView("home")} /> */}
-            <Button onClick={() => setActiveView("home")}>Back</Button>
-            <h2>Course Management (Placeholder)</h2>
-          </div> );
 
-      // --- Default Home View ---
+      // --- EDIT IS HERE ---
+      case "courses":
+        // Render the actual CourseManagementView component
+        return <CourseManagementView onBack={() => setActiveView("home")} />;
+      // --- END EDIT ---
+
       default: // home view
         return (
           <div className="space-y-8">
@@ -75,11 +70,11 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
               <p className="text-muted-foreground">Administrative Dashboard</p>
             </div>
 
-            {/* Navigation Cards (Keep onClick logic) */}
+            {/* Navigation Cards */}
             <div className="grid md:grid-cols-3 gap-6">
               <Card
                 className="hover:shadow-lg transition-shadow cursor-pointer group"
-                onClick={() => setActiveView("students")} // This triggers the switch
+                onClick={() => setActiveView("students")}
               >
                 <CardHeader>
                   <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-2 group-hover:bg-blue-500/20 transition-colors">
@@ -91,7 +86,7 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <span className="text-sm font-medium text-primary group-hover:underline flex items-center"> {/* Use span for layout */}
+                  <span className="text-sm font-medium text-primary group-hover:underline flex items-center">
                     Manage Students <ArrowRight className="ml-1 h-4 w-4" />
                   </span>
                 </CardContent>
@@ -119,7 +114,7 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
 
               <Card
                 className="hover:shadow-lg transition-shadow cursor-pointer group"
-                onClick={() => setActiveView("courses")}
+                onClick={() => setActiveView("courses")} // This triggers the switch
               >
                 <CardHeader>
                   <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-2 group-hover:bg-purple-500/20 transition-colors">
@@ -138,7 +133,7 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
               </Card>
             </div>
 
-            {/* Quick Stats (Using dynamic data) */}
+            {/* Quick Stats */}
              <h3 className="text-xl font-semibold mb-4">Overview</h3>
              {loadingStats ? (
                <p className="text-center text-muted-foreground">Loading statistics...</p>
@@ -209,3 +204,4 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
     </div>
   );
 }
+
