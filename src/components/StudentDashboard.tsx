@@ -7,7 +7,7 @@ import { GradesView } from "./GradesView";
 import { AttendanceView } from "./AttendanceView";
 import { ResourcesView } from "./ResourcesView";
 
-// --- REMOVED INCORRECT useState CALLS FROM HERE ---
+// Removed incorrect useState calls from outside the component
 
 interface StudentDashboardProps {
   onLogout: () => void;
@@ -23,12 +23,15 @@ interface StudentData {
 type ViewType = "home" | "grades" | "attendance" | "resources";
 
 export function StudentDashboard({ onLogout }: StudentDashboardProps) {
-  // --- CORRECT PLACEMENT FOR useState ---
+  // --- Corrected State Declarations (only one of each, inside the component) ---
   const [activeView, setActiveView] = useState<ViewType>("home");
   const [student, setStudent] = useState<StudentData | null>(null);
-  const [sgpa, setSgpa] = useState<string | null>(null); // Added missing sgpa state
+  const [sgpa, setSgpa] = useState<string | null>(null);
+  const [attendanceRate, setAttendanceRate] = useState<string | null>(null); // Added state for attendance rate
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // Keep only one error state
+  const [error, setError] = useState<string | null>(null);
+  const [enrolledCoursesCount, setEnrolledCoursesCount] = useState<number | null>(null); // <-- Add this
+  
 
   useEffect(() => {
     const loggedInUserString = localStorage.getItem('user');
@@ -42,16 +45,19 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     const studentId = loggedInUser.student_id;
 
     if (studentId) {
-      setLoading(true); // Set loading before the API call
+      setLoading(true); // Ensure loading is true before fetch
       axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/students/${studentId}`)
         .then(response => {
+          // --- Update state with fetched data ---
           setStudent(response.data.student);
           setSgpa(response.data.sgpa);
+          setAttendanceRate(response.data.attendanceRate); // Set the attendance rate
+          setEnrolledCoursesCount(response.data.enrolledCoursesCount);
         })
         .catch(err => {
           console.error("Error fetching student data:", err);
-          // Set the error state if the API call fails
-          setError("Failed to load dashboard data. Please try refreshing."); 
+          // --- Set the error state if the API call fails ---
+          setError("Failed to load dashboard data. Please try refreshing.");
         })
         .finally(() => {
           setLoading(false);
@@ -60,10 +66,10 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
       setError("Could not find student ID. Please log in again.");
       setLoading(false);
     }
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
-  if (loading) return <div className="p-8 text-center">Loading dashboard...</div>; // Added text-center for better UI
-  if (error) return <div className="p-8 text-red-500 text-center">{error}</div>; // Added text-center
+  if (loading) return <div className="p-8 text-center">Loading dashboard...</div>;
+  if (error) return <div className="p-8 text-red-500 text-center">{error}</div>;
 
   const renderView = () => {
     switch (activeView) {
@@ -87,7 +93,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
 
             {/* Cards for Grades, Attendance, Resources */}
             <div className="grid md:grid-cols-3 gap-6">
-                 <Card 
+                 <Card
                    className="hover:shadow-lg transition-shadow cursor-pointer group"
                    onClick={() => setActiveView("grades")}
                  >
@@ -105,7 +111,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                    </CardContent>
                  </Card>
 
-                 <Card 
+                 <Card
                    className="hover:shadow-lg transition-shadow cursor-pointer group"
                    onClick={() => setActiveView("attendance")}
                  >
@@ -123,7 +129,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                    </CardContent>
                  </Card>
 
-                 <Card 
+                 <Card
                    className="hover:shadow-lg transition-shadow cursor-pointer group"
                    onClick={() => setActiveView("resources")}
                  >
@@ -154,13 +160,14 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
               <Card>
                 <CardHeader>
                   <CardTitle>Attendance Rate</CardTitle>
-                  <div className="mt-2 text-2xl font-bold">92%</div> {/* Placeholder */}
+                  {/* --- Updated JSX to display fetched attendance rate --- */}
+                  <div className="mt-2 text-2xl font-bold">{attendanceRate !== null ? `${attendanceRate}%` : 'N/A'}</div>
                 </CardHeader>
               </Card>
               <Card>
                 <CardHeader>
                   <CardTitle>Enrolled Courses</CardTitle>
-                  <div className="mt-2 text-2xl font-bold">6</div> {/* Placeholder */}
+                  <div className="mt-2 text-2xl font-bold">{enrolledCoursesCount !== null ? enrolledCoursesCount : 'N/A'}</div>
                 </CardHeader>
               </Card>
             </div>
