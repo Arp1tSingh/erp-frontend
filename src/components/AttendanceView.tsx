@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { ArrowLeft, CheckCircle2, XCircle, Clock } from "lucide-react";
@@ -9,85 +11,84 @@ interface AttendanceViewProps {
   onBack: () => void;
 }
 
+// --- Types for Fetched Data ---
+interface AttendanceSummary {
+  overallRate: string;
+  totalClasses: number;
+  classesAttended: number;
+  totalAbsences: number;
+}
+
+interface CourseAttendanceDetail {
+  course_id: string;
+  course_name: string;
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+  attended: number;
+  percentage: number;
+}
+
+// Type for the raw records received from backend
+interface RawAttendanceRecord {
+  course_id: string;
+  course_name: string;
+  status: 'Present' | 'Absent' | 'Late';
+  class_date: string; // Assuming backend sends date as string
+}
+// --- End of Types ---
+
 export function AttendanceView({ onBack }: AttendanceViewProps) {
-  const attendanceRecords = [
-    {
-      id: 1,
-      course: "CS101 - Intro to Computer Science",
-      totalClasses: 30,
-      attended: 28,
-      absent: 2,
-      late: 0,
-      percentage: 93.3
-    },
-    {
-      id: 2,
-      course: "MATH201 - Calculus II",
-      totalClasses: 28,
-      attended: 26,
-      absent: 1,
-      late: 1,
-      percentage: 92.9
-    },
-    {
-      id: 3,
-      course: "ENG105 - Technical Writing",
-      totalClasses: 25,
-      attended: 24,
-      absent: 1,
-      late: 0,
-      percentage: 96.0
-    },
-    {
-      id: 4,
-      course: "PHYS201 - Physics I",
-      totalClasses: 32,
-      attended: 28,
-      absent: 3,
-      late: 1,
-      percentage: 87.5
-    },
-    {
-      id: 5,
-      course: "HIST110 - World History",
-      totalClasses: 24,
-      attended: 22,
-      absent: 2,
-      late: 0,
-      percentage: 91.7
-    },
-    {
-      id: 6,
-      course: "CS102 - Data Structures",
-      totalClasses: 30,
-      attended: 27,
-      absent: 2,
-      late: 1,
-      percentage: 90.0
+  // --- State Variables ---
+  const [summary, setSummary] = useState<AttendanceSummary | null>(null);
+  const [details, setDetails] = useState<CourseAttendanceDetail[]>([]);
+  const [recent, setRecent] = useState<RawAttendanceRecord[]>([]); // State for recent records
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  // --- End of State ---
+
+  // --- Data Fetching ---
+  useEffect(() => {
+    const loggedInUserString = localStorage.getItem('user');
+    if (!loggedInUserString) {
+      setError("User not logged in."); setLoading(false); return;
     }
-  ];
+    const loggedInUser = JSON.parse(loggedInUserString);
+    const studentId = loggedInUser.student_id;
+    if (!studentId) {
+      setError("Student ID not found."); setLoading(false); return;
+    }
 
-  const recentAttendance = [
-    { date: "2025-10-10", course: "CS101", status: "Present" },
-    { date: "2025-10-10", course: "MATH201", status: "Present" },
-    { date: "2025-10-09", course: "ENG105", status: "Present" },
-    { date: "2025-10-09", course: "PHYS201", status: "Late" },
-    { date: "2025-10-08", course: "HIST110", status: "Present" },
-    { date: "2025-10-08", course: "CS102", status: "Present" },
-    { date: "2025-10-07", course: "CS101", status: "Present" },
-    { date: "2025-10-07", course: "MATH201", status: "Absent" }
-  ];
+    setLoading(true);
+    // Fetch data from the backend endpoint
+    axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/attendance/${studentId}/current`)
+      .then(response => {
+        setSummary(response.data.summary);
+        setDetails(response.data.details);
+        // Sort recent records by date (newest first) and take top 8
+        const sortedRecent = response.data.recent
+          .sort((a: RawAttendanceRecord, b: RawAttendanceRecord) => new Date(b.class_date).getTime() - new Date(a.class_date).getTime())
+          .slice(0, 8); // Limit to 8 most recent
+        setRecent(sortedRecent);
+      })
+      .catch(err => {
+        console.error("Error fetching attendance:", err);
+        setError("Failed to load attendance records.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []); // Empty array ensures this runs only once on mount
+  // --- End of Data Fetching ---
 
+  // --- Helper Functions ---
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "Present":
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-      case "Absent":
-        return <XCircle className="h-4 w-4 text-red-600" />;
-      case "Late":
-        return <Clock className="h-4 w-4 text-yellow-600" />;
-      default:
-        return null;
+      case "Present": return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case "Absent": return <XCircle className="h-4 w-4 text-red-600" />;
+      case "Late": return <Clock className="h-4 w-4 text-yellow-600" />;
+      default: return null;
     }
   };
 
@@ -99,95 +100,75 @@ export function AttendanceView({ onBack }: AttendanceViewProps) {
     };
     return variants[status] || "";
   };
+  // --- End of Helper Functions ---
 
-  const calculateOverallAttendance = () => {
-    const totalClasses = attendanceRecords.reduce((sum, record) => sum + record.totalClasses, 0);
-    const totalAttended = attendanceRecords.reduce((sum, record) => sum + record.attended, 0);
-    return ((totalAttended / totalClasses) * 100).toFixed(1);
-  };
 
+  // --- Loading and Error States ---
+  if (loading) return <div className="p-4 text-center">Loading attendance...</div>;
+  if (error) return <div className="p-4 text-red-500 text-center">{error}</div>;
+  // It's possible summary exists but details/recent might be empty if no records found
+  if (!summary) return <div className="p-4 text-center">No attendance summary available.</div>;
+  // --- End of Loading/Error States ---
+
+  // --- Main JSX Structure ---
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+        {/* Use updated Button style */}
+        <Button variant="outline" size="sm" onClick={onBack} className="mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
         </Button>
       </div>
 
       <div>
-        <h2 className="mb-2">Attendance Records</h2>
+        <h2 className="mb-2 text-2xl font-bold">Attendance Records</h2>
         <p className="text-muted-foreground">Track your class attendance and participation</p>
       </div>
 
-      {/* Attendance Summary */}
+      {/* Attendance Summary Cards (Using Fetched Data) */}
       <div className="grid md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Overall Attendance</CardDescription>
-            <CardTitle>{calculateOverallAttendance()}%</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Total Classes</CardDescription>
-            <CardTitle>{attendanceRecords.reduce((sum, r) => sum + r.totalClasses, 0)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Classes Attended</CardDescription>
-            <CardTitle>{attendanceRecords.reduce((sum, r) => sum + r.attended, 0)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Total Absences</CardDescription>
-            <CardTitle>{attendanceRecords.reduce((sum, r) => sum + r.absent, 0)}</CardTitle>
-          </CardHeader>
-        </Card>
+        <Card><CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Overall Attendance</CardTitle><div className="text-2xl font-bold">{summary.overallRate}%</div></CardHeader></Card>
+        <Card><CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Total Classes</CardTitle><div className="text-2xl font-bold">{summary.totalClasses}</div></CardHeader></Card>
+        <Card><CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Classes Attended</CardTitle><div className="text-2xl font-bold">{summary.classesAttended}</div></CardHeader></Card>
+        <Card><CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">Total Absences</CardTitle><div className="text-2xl font-bold">{summary.totalAbsences}</div></CardHeader></Card>
       </div>
 
-      {/* Course-wise Attendance */}
+      {/* Course-wise Attendance (Using Fetched Data) */}
       <Card>
         <CardHeader>
           <CardTitle>Course-wise Attendance</CardTitle>
-          <CardDescription>Attendance breakdown for each course</CardDescription>
+          <CardDescription>Attendance breakdown for each course this semester</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {attendanceRecords.map((record) => (
-            <div key={record.id} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p>{record.course}</p>
-                  <p className="text-muted-foreground">
-                    {record.attended}/{record.totalClasses} classes attended
-                  </p>
-                </div>
-                <span>{record.percentage.toFixed(1)}%</span>
-              </div>
-              <Progress value={record.percentage} />
-              <div className="flex gap-4 text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> {record.attended} Present
-                </span>
-                <span className="flex items-center gap-1">
-                  <XCircle className="h-3 w-3" /> {record.absent} Absent
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> {record.late} Late
-                </span>
-              </div>
-            </div>
-          ))}
+          {details.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">No attendance records found for this semester.</p>
+          ) : (
+            details.map((course) => (
+              <div key={course.course_id} className="border-b pb-4 last:border-b-0 last:pb-0">
+                 <div className="flex justify-between items-center mb-2">
+                   <span className="font-medium">{course.course_id} - {course.course_name}</span>
+                   <span className="text-sm font-semibold">{course.percentage.toFixed(1)}%</span>
+                 </div>
+                 <Progress value={course.percentage} className="h-2 mb-2" />
+                 <div className="flex justify-between items-center text-xs text-muted-foreground">
+                   <span>{course.attended}/{course.total} classes attended</span>
+                   <div className="flex gap-2">
+                     <span>P: {course.present}</span>
+                     <span>A: {course.absent}</span>
+                     <span>L: {course.late}</span>
+                   </div>
+                 </div>
+               </div>
+            ))
+          )}
         </CardContent>
       </Card>
 
-      {/* Recent Attendance */}
+      {/* Recent Attendance (Using Fetched Data) */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Attendance</CardTitle>
-          <CardDescription>Your latest attendance records</CardDescription>
+          <CardDescription>Your latest attendance records for the current semester</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -199,20 +180,24 @@ export function AttendanceView({ onBack }: AttendanceViewProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentAttendance.map((record, index) => (
-                <TableRow key={index}>
-                  <TableCell>{record.date}</TableCell>
-                  <TableCell>{record.course}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      {getStatusIcon(record.status)}
-                      <Badge variant="outline" className={getStatusBadge(record.status)}>
-                        {record.status}
-                      </Badge>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {recent.length === 0 ? (
+                 <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">No recent records found.</TableCell></TableRow>
+              ) : (
+                 recent.map((record, index) => (
+                   <TableRow key={index}>
+                     <TableCell>{new Date(record.class_date).toLocaleDateString()}</TableCell> {/* Format date */}
+                     <TableCell>{record.course_name}</TableCell> {/* Use course_name */}
+                     <TableCell className="text-center">
+                       <div className="flex items-center justify-center gap-2">
+                         {getStatusIcon(record.status)}
+                         <Badge variant="outline" className={getStatusBadge(record.status)}>
+                           {record.status}
+                         </Badge>
+                       </div>
+                     </TableCell>
+                   </TableRow>
+                 ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -220,3 +205,4 @@ export function AttendanceView({ onBack }: AttendanceViewProps) {
     </div>
   );
 }
+
