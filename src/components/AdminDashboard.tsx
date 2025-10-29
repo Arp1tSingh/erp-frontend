@@ -4,8 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Button } from "./ui/button";
 import { GraduationCap, LogOut, Users, BarChart3, BookOpen, ArrowRight } from "lucide-react";
 import { StudentManagementView } from "./StudentManagementView";
-// import { ReportsView } from "./ReportsView"; // Keep commented if not built
-import { CourseManagementView } from "./CourseManagementView"; // Ensure this component exists
+// --- 1. CHANGE THIS IMPORT ---
+import { ReportsView } from "./ReportsView"; // Import the actual reports view
+import { CourseManagementView } from "./CourseManagementView";
+// --- REMOVED ResourcesView import ---
+
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -50,17 +53,13 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
       case "students":
         return <StudentManagementView onBack={() => setActiveView("home")} />;
 
+      // --- 2. REPLACE THE COMPONENT RENDERED ---
       case "reports":
-        return ( <div> {/* Replace with <ReportsView onBack={() => setActiveView("home")} /> */}
-             <Button onClick={() => setActiveView("home")}>Back</Button>
-            <h2>Reports & Analytics (Placeholder)</h2>
-          </div> );
+        return <ReportsView onBack={() => setActiveView("home")} />;
+      // --- END OF CHANGE ---
 
-      // --- EDIT IS HERE ---
       case "courses":
-        // Render the actual CourseManagementView component
         return <CourseManagementView onBack={() => setActiveView("home")} />;
-      // --- END EDIT ---
 
       default: // home view
         return (
@@ -106,7 +105,7 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <span className="text-sm font-medium text-primary group-hover:underline flex items-center">
+                  <span className="text-sm font-medium text-primary group-hover:underline flex items-center">
                     View Reports <ArrowRight className="ml-1 h-4 w-4" />
                   </span>
                 </CardContent>
@@ -126,7 +125,7 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <span className="text-sm font-medium text-primary group-hover:underline flex items-center">
+                  <span className="text-sm font-medium text-primary group-hover:underline flex items-center">
                     Manage Courses <ArrowRight className="ml-1 h-4 w-4" />
                   </span>
                 </CardContent>
@@ -134,46 +133,46 @@ export function AdminDashboard({ onLogout, adminName = "Admin User" }: AdminDash
             </div>
 
             {/* Quick Stats */}
-             <h3 className="text-xl font-semibold mb-4">Overview</h3>
-             {loadingStats ? (
-               <p className="text-center text-muted-foreground">Loading statistics...</p>
-             ) : error ? (
-               <p className="text-red-500 text-center">{error}</p>
-             ) : stats ? (
-               <div className="grid md:grid-cols-4 gap-6">
-                 {/* Stat Cards */}
-                 <Card className="flex flex-col justify-center">
-                   <CardHeader>
-                     <CardDescription>Total Students</CardDescription>
-                     <CardTitle className="text-3xl">{stats.totalStudents}</CardTitle>
-                     <p className="text-xs text-muted-foreground">Currently active</p>
-                   </CardHeader>
-                 </Card>
-                 <Card className="flex flex-col justify-center">
-                   <CardHeader>
-                     <CardDescription>Active Courses</CardDescription>
-                     <CardTitle className="text-3xl">{stats.activeCourses}</CardTitle>
-                      <p className="text-xs text-muted-foreground">Currently offered</p>
-                   </CardHeader>
-                 </Card>
-                 <Card className="flex flex-col justify-center">
-                   <CardHeader>
-                     <CardDescription>Faculty Members</CardDescription>
-                     <CardTitle className="text-3xl">{stats.facultyMembers}</CardTitle>
-                     <p className="text-xs text-muted-foreground">Total count</p>
-                   </CardHeader>
-                 </Card>
-                 <Card className="flex flex-col justify-center">
-                   <CardHeader>
-                     <CardDescription>Average Attendance</CardDescription>
-                     <CardTitle className="text-3xl">{stats.averageAttendance}%</CardTitle>
-                     <p className="text-xs text-muted-foreground">Across all classes</p>
-                   </CardHeader>
-                 </Card>
-               </div>
-             ) : (
-               <p className="text-center text-muted-foreground">No statistics available.</p>
-             )}
+            <h3 className="text-xl font-semibold mb-4">Overview</h3>
+            {loadingStats ? (
+              <p className="text-center text-muted-foreground">Loading statistics...</p>
+            ) : error ? (
+              <p className="text-red-500 text-center">{error}</p>
+            ) : stats ? (
+              <div className="grid md:grid-cols-4 gap-6">
+                {/* Stat Cards */}
+                <Card className="flex flex-col justify-center">
+                  <CardHeader>
+                    <CardDescription>Total Students</CardDescription>
+                    <CardTitle className="text-3xl">{stats.totalStudents}</CardTitle>
+                    <p className="text-xs text-muted-foreground">Currently active</p>
+                  </CardHeader>
+                </Card>
+                <Card className="flex flex-col justify-center">
+                  <CardHeader>
+                    <CardDescription>Active Courses</CardDescription>
+                    <CardTitle className="text-3xl">{stats.activeCourses}</CardTitle>
+                    <p className="text-xs text-muted-foreground">Currently offered</p>
+                  </CardHeader>
+                </Card>
+                <Card className="flex flex-col justify-center">
+                  <CardHeader>
+                    <CardDescription>Faculty Members</CardDescription>
+                    <CardTitle className="text-3xl">{stats.facultyMembers}</CardTitle>
+                    <p className="text-xs text-muted-foreground">Total count</p>
+                  </CardHeader>
+                </Card>
+                <Card className="flex flex-col justify-center">
+                  <CardHeader>
+                    <CardDescription>Average Attendance</CardDescription>
+                    <CardTitle className="text-3xl">{stats.averageAttendance}%</CardTitle>
+                    <p className="text-xs text-muted-foreground">Across all classes</p>
+                  </CardHeader>
+                </Card>
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">No statistics available.</p>
+            )}
             {/* Recent Activity Removed */}
           </div>
         );
