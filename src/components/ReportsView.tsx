@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'; // Added hooks
-import axios from 'axios'; // Added axios
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-// --- Added Loader2 ---
-import { ArrowLeft, Download, TrendingUp, TrendingDown, Users, BookOpen, Calendar, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, TrendingUp, TrendingDown, Users, BookOpen, Calendar, Loader2 } from "lucide-react"; // Removed Download usage below
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
@@ -11,7 +10,7 @@ interface ReportsViewProps {
   onBack: () => void;
 }
 
-// --- NEW: Define types for fetched data ---
+// --- Data types remain the same ---
 interface KeyMetrics {
   totalEnrollment: number;
   activeCourses: number;
@@ -20,12 +19,10 @@ interface KeyMetrics {
   enrollmentTrend: { value: number, direction: 'up' | 'down' };
   attendanceTrend: { value: number, direction: 'up' | 'down' };
 }
-
 interface EnrollmentTrendPoint { month: string; students: number; }
 interface AttendancePoint { day: string; percentage: number; }
 interface DepartmentPoint { name: string; value: number; color: string; }
 interface PerformancePoint { range: string; students: number; }
-
 interface ReportData {
   keyMetrics: KeyMetrics;
   enrollmentTrend: EnrollmentTrendPoint[];
@@ -33,16 +30,12 @@ interface ReportData {
   departmentDistribution: DepartmentPoint[];
   performanceDistribution: PerformancePoint[];
 }
-// ---
 
 export function ReportsView({ onBack }: ReportsViewProps) {
-  // --- NEW: State for data, loading, and errors ---
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // ---
 
-  // --- NEW: Fetch data on component mount ---
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -57,10 +50,8 @@ export function ReportsView({ onBack }: ReportsViewProps) {
       .finally(() => {
         setLoading(false);
       });
-  }, []); // Empty dependency array means run once on mount
-  // ---
+  }, []);
 
-  // --- Loading and Error States ---
   if (loading) {
     return (
       <div className="space-y-6">
@@ -89,9 +80,7 @@ export function ReportsView({ onBack }: ReportsViewProps) {
     );
   }
 
-  // --- If data loaded successfully ---
-  // Use optional chaining (?.) in case data is null somehow, though loading/error states should prevent this
-  const km = reportData?.keyMetrics; // Shortcut for key metrics
+  const km = reportData?.keyMetrics;
 
   return (
     <div className="space-y-6">
@@ -102,18 +91,18 @@ export function ReportsView({ onBack }: ReportsViewProps) {
         </Button>
       </div>
 
+      {/* --- SECTION MODIFIED: Removed Export Button --- */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="mb-2">Reports & Analytics</h2>
           <p className="text-muted-foreground">Comprehensive insights and data analysis</p>
         </div>
-        <Button>
-          <Download className="h-4 w-4 mr-2" />
-          Export Reports
-        </Button>
+        {/* Export Button Removed */}
       </div>
+      {/* --- END MODIFICATION --- */}
 
-      {/* Key Metrics - Now uses fetched data */}
+
+      {/* Key Metrics */}
       <div className="grid md:grid-cols-4 gap-4">
         <Card>
           <CardHeader>
@@ -137,7 +126,6 @@ export function ReportsView({ onBack }: ReportsViewProps) {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </div>
             <CardTitle>{km?.activeCourses ?? '...'}</CardTitle>
-            {/* You might want to calculate dept count in backend */}
              <p className="text-muted-foreground">{reportData?.departmentDistribution?.length || '...'} departments</p>
           </CardHeader>
         </Card>
@@ -159,16 +147,16 @@ export function ReportsView({ onBack }: ReportsViewProps) {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardDescription>Avg. GPA</CardDescription>
+              <CardDescription>Avg. CGPA</CardDescription> {/* Updated Label */}
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </div>
-            <CardTitle>{km?.averageGpa ?? '...'}</CardTitle>
+            <CardTitle>{km?.averageGpa ?? '...'}</CardTitle> {/* Now uses 10-point scale */}
             <p className="text-muted-foreground">Institution-wide</p>
           </CardHeader>
         </Card>
       </div>
 
-      {/* Analytics Tabs - Now uses fetched data */}
+      {/* Analytics Tabs */}
       <Tabs defaultValue="enrollment" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="enrollment">Enrollment</TabsTrigger>
@@ -185,7 +173,6 @@ export function ReportsView({ onBack }: ReportsViewProps) {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-                {/* Check if data exists before rendering chart */}
                 {reportData?.enrollmentTrend ? (
                   <LineChart data={reportData.enrollmentTrend}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -240,7 +227,6 @@ export function ReportsView({ onBack }: ReportsViewProps) {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        // Adjusted label for clarity and space
                         label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
                         outerRadius={120}
                         fill="#8884d8"
@@ -250,11 +236,10 @@ export function ReportsView({ onBack }: ReportsViewProps) {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value, name) => [`${value} students`, name]} /> {/* Show value on hover */}
+                      <Tooltip formatter={(value, name) => [`${value} students`, name]} />
                     </PieChart>
                   ) : <p className="text-center text-muted-foreground">Department data not available.</p>}
                 </ResponsiveContainer>
-                {/* Legend/List (Uses fetched data) */}
                 <div className="space-y-2">
                    {reportData?.departmentDistribution?.map((dept, index) => (
                     <div key={index} className="flex items-center justify-between p-2 border rounded-lg text-sm">
@@ -274,18 +259,20 @@ export function ReportsView({ onBack }: ReportsViewProps) {
           </Card>
         </TabsContent>
 
+        {/* --- SECTION MODIFIED: Performance Tab now uses correct data ranges --- */}
         <TabsContent value="performance" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Academic Performance Distribution</CardTitle>
-              <CardDescription>Number of students by GPA range</CardDescription>
+              <CardDescription>Number of students by CGPA range (10-point scale)</CardDescription> {/* Updated Description */}
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
                 {reportData?.performanceDistribution ? (
+                  // Ensure the dataKey matches what the backend sends ('range')
                   <BarChart data={reportData.performanceDistribution}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="range" />
+                    <XAxis dataKey="range" /> {/* This should now show '9.0-10.0', etc. */}
                     <YAxis />
                     <Tooltip />
                     <Legend />
@@ -296,31 +283,14 @@ export function ReportsView({ onBack }: ReportsViewProps) {
             </CardContent>
           </Card>
         </TabsContent>
+        {/* --- END MODIFICATION --- */}
+
       </Tabs>
 
-      {/* Quick Reports (No changes needed here) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Reports</CardTitle>
-          <CardDescription>Generate commonly used reports</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Download className="h-5 w-5" />
-              Student Roster
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Download className="h-5 w-5" />
-              Grade Report
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Download className="h-5 w-5" />
-              Attendance Summary
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* --- SECTION REMOVED: Quick Reports Card --- */}
+      {/* The entire <Card> for Quick Reports has been deleted */}
+      {/* --- END REMOVAL --- */}
+
     </div>
   );
 }
